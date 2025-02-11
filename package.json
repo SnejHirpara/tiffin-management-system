@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
     "build": "mkdir -p dist && cp -r src dist",
-    "start": "node -r dotenv/config --experimental-json-modules src/index.js"
+    "start": "node --experimental-json-modules src/index.js"
   },
   "keywords": [
     "javascript",
