@@ -2,14 +2,30 @@
   "name": "tiffin-management-system",
   "version": "1.0.0",
   "description": "Management of tiffin bills monthly and two times each day",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+    "build": "mkdir -p dist && cp -r src dist"
   },
   "keywords": [
     "javascript",
     "backend"
   ],
   "author": "Snej Hirpara",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "appwrite": "^17.0.0",
+    "bcrypt": "^5.1.1",
+    "cloudinary": "^2.5.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.3",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
 }
