@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Management of tiffin bills monthly and two times each day",
   "type": "module",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "build": "mkdir -p dist && cp -r src dist",
+    "build": "echo 'No build step required'",
     "start": "node src/index.js"
   },
   "keywords": [
