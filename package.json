@@ -6,8 +6,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "build": "echo 'No build step required'",
-    "start": "node src/index.js"
+    "build": "npm install",
+    "start": "npm install node src/index.js"
   },
   "keywords": [
     "javascript",
