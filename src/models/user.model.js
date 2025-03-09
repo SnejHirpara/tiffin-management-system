@@ -31,14 +31,12 @@ const userSchema = new Schema({
         required: [true, 'password is required'],
         minLength: 8
     },
-    tiffins: {
-        type: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: 'Tiffin'
-            }
-        ]
-    },
+    tiffins: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'Tiffin'
+        }
+    ],
     refreshToken: {
         type: String
     }
