@@ -1,3 +1,4 @@
+import { Tiffin } from "../models/tiffin.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -141,6 +142,65 @@ const updateCurrentPassword = asyncHandler(async (req, res) => {
     );
 });
 
+const getLoggedInUserTiffins = asyncHandler(async (req, res) => {
+    if (!req.user?._id) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    try {
+        const tiffins = await Tiffin.aggregate([
+            {
+                $match: {
+                    takenBy: req.user._id
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "takenBy",
+                    foreignField: "_id",
+                    as: "takenByUser",
+                    pipeline: [
+                        {
+                            $project: {
+                                email: 1,
+                                username: 1,
+                                fullName: 1,
+                                avatar: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $set: {
+                    takenByUser: { "$arrayElemAt": ["$takenByUser", 0] }
+                }
+            },
+            {
+                $unset: "__v"
+            }
+            // {
+            //     $project: {
+            //         _id: 1,
+            //         count: 1,
+            //         type: 1,
+            //         reasonForCancelOrLessThan2Tiffin: 1,
+            //         takenBy: 1,
+            //         price: 1,
+            //         createdAt: 1
+            //     }
+            // }
+        ]);
+
+        return res.status(200).json(
+            new ApiResponse(200, tiffins, "Tiffins for logged in user fetched successfully")
+        );
+    } catch (error) {
+        throw new ApiError(500, "Server Error while fetching tiffins for logged in user");
+    }
+});
+
 const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(req?.user?._id, {
         $unset: {
@@ -161,5 +221,6 @@ export {
     loginUser,
     logoutUser,
     updateAvatar,
-    updateCurrentPassword
+    updateCurrentPassword,
+    getLoggedInUserTiffins
 };
