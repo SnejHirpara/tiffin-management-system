@@ -37,9 +37,12 @@ const addTiffin = asyncHandler(async (req, res) => {
         }
 
         const user = await User.findById(takenBy);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
 
-        user.tiffins.push(tiffin);
-        await user.save({ validateBeforeSave: false });
+        // user.tiffins.push(tiffin);
+        // await user.save({ validateBeforeSave: false });
 
         return res.status(200).json(
             new ApiResponse(200, { _id: tiffin._id }, "Tiffin added successfully")
@@ -49,6 +52,33 @@ const addTiffin = asyncHandler(async (req, res) => {
     }
 });
 
+const deleteTiffin = asyncHandler(async (req, res) => {
+    if (!req?.user?.id) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    try {
+        const { id } = req.body;
+
+        if (!id) {
+            throw new ApiError(400, "id field of the Tiffin must be needed");
+        }
+
+        const deletedResult = await Tiffin.deleteOne({ _id: id });
+
+        if (!deletedResult?.acknowledged) {
+            throw new ApiError(500, "Tiffin deletion failed");
+        }
+
+        return res.status(200).json(
+            new ApiResponse(200, {}, "Tiffin deleted successfully")
+        );
+    } catch (error) {
+        throw new ApiError(500, "Error while deleting the tiffin");
+    }
+});
+
 export {
-    addTiffin
+    addTiffin,
+    deleteTiffin
 };

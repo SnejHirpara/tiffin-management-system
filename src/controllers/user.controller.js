@@ -180,17 +180,6 @@ const getLoggedInUserTiffins = asyncHandler(async (req, res) => {
             {
                 $unset: "__v"
             }
-            // {
-            //     $project: {
-            //         _id: 1,
-            //         count: 1,
-            //         type: 1,
-            //         reasonForCancelOrLessThan2Tiffin: 1,
-            //         takenBy: 1,
-            //         price: 1,
-            //         createdAt: 1
-            //     }
-            // }
         ]);
 
         return res.status(200).json(
