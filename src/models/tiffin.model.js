@@ -6,7 +6,8 @@ const tiffinSchema = new Schema({
         type: Number,
         required: true,
         min: 0,
-        max: 2
+        max: 2,
+        default: 2
     },
     type: {
         type: String,
@@ -28,5 +29,10 @@ const tiffinSchema = new Schema({
         default: 90.00
     },
 }, { timestamps: true });
+
+tiffinSchema.pre("save", async function (next) {
+    this.price = this.price * this.count;
+    next();
+});
 
 export const Tiffin = mongoose.model('Tiffin', tiffinSchema);

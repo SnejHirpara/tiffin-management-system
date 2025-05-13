@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from 'bcrypt';
 import jwt from "jsonwebtoken";
+import { UserRole } from "../enums/user.enum.js";
 
 const userSchema = new Schema({
     email: {
@@ -30,6 +31,22 @@ const userSchema = new Schema({
         type: String,
         required: [true, 'password is required'],
         minLength: 8
+    },
+    role: {
+        type: String,
+        required: true,
+        enum: [UserRole.ADMIN, UserRole.USER],
+    },
+    adminId: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        validate: {
+            validator: function (value) {
+                let isRoleUser = ((this.role === UserRole.ADMIN) && value) ? false : true;
+                return isRoleUser;
+            },
+            message: "Only User role should have an adminId"
+        }
     },
     refreshToken: {
         type: String

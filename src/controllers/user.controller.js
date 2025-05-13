@@ -1,3 +1,7 @@
+import mongoose from "mongoose";
+import moment from "moment";
+
+import { UserRole } from "../enums/user.enum.js";
 import { Tiffin } from "../models/tiffin.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -27,10 +31,14 @@ const generateAccessAndRefreshTokens = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-    const { username, fullName, email, password } = req.body;
+    const { username, fullName, email, password, role } = req.body;
 
-    if (!username || !fullName || !email || !password) {
+    if (!username || !fullName || !email || !password || !role) {
         throw new ApiError(400, "User details are required");
+    }
+
+    if (!UserRole.isValid(role)) {
+        throw new ApiError(400, "Invalid role. It should be either Admin or User.");
     }
 
     const existedUser = await User.findOne({
@@ -58,6 +66,7 @@ const registerUser = asyncHandler(async (req, res) => {
         fullName,
         email,
         password,
+        role,
         avatar: avatarUploadedOnServerResult
     });
 
@@ -166,7 +175,10 @@ const getLoggedInUserTiffins = asyncHandler(async (req, res) => {
                                 email: 1,
                                 username: 1,
                                 fullName: 1,
-                                avatar: 1
+                                avatar: 1,
+                                role: 1,
+                                createdAt: 1,
+                                updatedAt: 1
                             }
                         }
                     ]
@@ -187,6 +199,132 @@ const getLoggedInUserTiffins = asyncHandler(async (req, res) => {
         );
     } catch (error) {
         throw new ApiError(500, "Server Error while fetching tiffins for logged in user");
+    }
+});
+
+const getAllUsersForCurrentLoggedInAdmin = asyncHandler(async (req, res) => {
+    if (!req?.user?._id) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    if (UserRole.isUser(req?.user?.role)) {
+        throw new ApiError(400, "Role must be Admin in order to fetch all Users");
+    }
+
+    try {
+        const usersForLoggedInAdmin = await User.aggregate([
+            {
+                $match: {
+                    _id: { $ne: req.user._id }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "adminId",
+                    as: "users",
+                }
+            },
+            {
+                $project: {
+                    adminId: 1,
+                    email: 1,
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                    role: 1,
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            }
+        ]);
+
+        return res.status(200).json(
+            new ApiResponse(200, usersForLoggedInAdmin, "All users for current logged in admin fetched successfully.")
+        );
+    } catch (error) {
+        throw new ApiError(500, "Error while fetching users for currently logged in Admin.");
+    }
+});
+
+const getNetTotalTiffinsInfoForAMonthAndYear = asyncHandler(async (req, res) => {
+    if (!req?.user?._id) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    const { userId, year } = req.body;
+    let { month } = req.body;
+
+    if (!userId || !month || !year) {
+        throw new ApiError(400, "Invalid payload - userId and month are required");
+    }
+
+    try {
+        const userWithUserRole = await User.findById(userId);
+
+        if (UserRole.isAdmin(userWithUserRole.role)) {
+            throw new ApiError(400, "Provided userId is of Admin. User as Admin doesn't have tiffins. So, userId must be of User Role.");
+        }
+
+        month = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
+        const monthStartDate = moment.utc(`${year}-${month}`, "YYYY-MMMM").startOf("month").startOf('day').toDate();
+        const monthEndDate = moment.utc(`${year}-${month}`, "YYYY-MMMM").endOf("month").endOf('day').toDate();
+
+        const netTotalInfo = await Tiffin.aggregate([
+            {
+                $match: {
+                    $and: [
+                        { takenBy: new mongoose.Types.ObjectId(userId) },
+                        { createdAt: { $gte: monthStartDate, $lte: monthEndDate } }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: "$takenBy",
+                    totalTiffinsCount: {
+                        $sum: "$count"
+                    },
+                    totalAmount: {
+                        $sum: { $ifNull: ["$price", 0] }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            { $unwind: "$user" },
+            {
+                $project: {
+                    _id: 0,
+                    totalTiffinsCount: 1,
+                    totalAmount: 1,
+                    month: month,
+                    year: year,
+                    user: {
+                        email: 1,
+                        username: 1,
+                        fullName: 1,
+                        avatar: 1,
+                        role: 1,
+                        createdAt: 1,
+                        updatedAt: 1
+                    }
+                }
+            }
+        ]);
+
+        res.status(200).json(
+            new ApiResponse(200, netTotalInfo[0] || {}, "Total amount for taken tiffins for a month is calculated successfully")
+        );
+    } catch (error) {
+        throw new ApiError(500, "Error while fetching net total tiffins info for a user for a particular month");
     }
 });
 
@@ -211,5 +349,7 @@ export {
     logoutUser,
     updateAvatar,
     updateCurrentPassword,
-    getLoggedInUserTiffins
+    getLoggedInUserTiffins,
+    getAllUsersForCurrentLoggedInAdmin,
+    getNetTotalTiffinsInfoForAMonthAndYear
 };
